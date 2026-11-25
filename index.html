@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f0f13">
+  <title>Anda la oSwap | Editor Viral & Face Swap IA</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    :root {
+      --bg: #0f0f13;
+      --card: #1a1a24;
+      --accent: #ff0050;
+      --cyan: #00f2fe;
+      --text: #ffffff;
+      --muted: #9ca3af;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 12px; }
+    .ad-slot {
+      width: 100%; max-width: 420px; min-height: 60px;
+      background: #14141c; border: 1px dashed #333; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-size: 11px; margin: 8px 0; text-align: center;
+    }
+    header { text-align: center; margin: 10px 0; }
+    header h1 { font-size: 1.6rem; font-weight: 900; background: linear-gradient(90deg, var(--cyan), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    header p { font-size: 0.85rem; color: var(--muted); }
+    .app-container { width: 100%; max-width: 420px; background: var(--card); border-radius: 16px; padding: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    .preview-box {
+      width: 100%; aspect-ratio: 9 / 16; max-height: 360px;
+      background: #000; border-radius: 12px; overflow: hidden;
+      position: relative; display: flex; align-items: center; justify-content: center;
+      border: 1px solid #2d2d3d; margin-bottom: 14px;
+    }
+    video { width: 100%; height: 100%; object-fit: cover; display: none; }
+    .placeholder { text-align: center; color: var(--muted); padding: 20px; font-size: 0.9rem; }
+    .controls { display: flex; flex-direction: column; gap: 10px; }
+    .file-btn {
+      background: #262636; border: 1px solid #3f3f5a; color: #fff;
+      padding: 12px; border-radius: 10px; text-align: center; font-weight: 600; cursor: pointer;
+    }
+    input[type="file"] { display: none; }
+    .grid-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .tool-btn {
+      background: #222230; border: 1px solid #333; color: #fff;
+      padding: 10px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    }
+    .tool-btn.active { border-color: var(--cyan); color: var(--cyan); }
+    .export-btn {
+      background: linear-gradient(90deg, var(--accent), #ff4b2b);
+      border: none; color: #fff; padding: 14px; border-radius: 12px;
+      font-size: 1rem; font-weight: 800; cursor: pointer; margin-top: 6px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .export-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .modal {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+      z-index: 99; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center;
+    }
+    .loader { border: 4px solid #333; border-top: 4px solid var(--cyan); border-radius: 50%; width: 42px; height: 42px; animation: spin 1s linear infinite; margin-bottom: 12px; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="ad-slot" id="ad-top">ESPACIO PUBLICITARIO SUPERIOR (320x50)</div>
+  <header>
+    <h1>🔥 Anda la oSwap</h1>
+    <p>Clips virales, cortes pro y cambio de rostro en segundos</p>
+  </header>
+  <main class="app-container">
+    <div class="preview-box">
+      <div class="placeholder" id="placeholderText">📱 Sube un video vertical o clip para empezar</div>
+      <video id="videoPreview" controls playsinline></video>
+    </div>
+    <div class="controls">
+      <label class="file-btn">
+        📂 1. Elegir Video o Clip
+        <input type="file" id="videoInput" accept="video/*">
+      </label>
+      <div class="grid-tools">
+        <button class="tool-btn" id="btnAutoCut">⚡ Auto-Cortes</button>
+        <button class="tool-btn" id="btnFaceSwap">🎭 Face Swap IA</button>
+        <button class="tool-btn" id="btnFilter">🎨 Filtro Viral</button>
+        <label class="tool-btn" style="text-align:center;">
+          🎵 Audio / Rolita
+          <input type="file" id="audioInput" accept="audio/*">
+        </label>
+      </div>
+      <button class="export-btn" id="btnExport" disabled>🚀 Renderizar Video Viral</button>
+    </div>
+  </main>
+  <div class="ad-slot" id="ad-bottom">ESPACIO PUBLICITARIO INFERIOR (320x100)</div>
+  <div class="modal" id="renderModal">
+    <div class="loader"></div>
+    <h3 id="statusText">Procesando tu clip...</h3>
+    <p style="color:#9ca3af; font-size:0.85rem; margin: 6px 0 14px;">No cierres esta ventana</p>
+    <div class="ad-slot" style="min-height: 250px;">ANUNCIO INTERSTICIAL (300x250)</div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
