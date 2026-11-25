@@ -1,0 +1,15 @@
+{
+  "name": "Anda la oSwap",
+  "short_name": "oSwap",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f0f13",
+  "theme_color": "#ff0050",
+  "icons": [
+    {
+      "src": "https://flaticon.com",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
