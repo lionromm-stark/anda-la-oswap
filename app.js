@@ -12,33 +12,37 @@ const statusText = document.getElementById('statusText');
 let activeFilter = false;
 let autoCutEnabled = false;
 let neonModeEnabled = false;
-let customAudioFile = null;
+let customAudioUrl = null;
+let currentVideoUrl = null;
 
-// 1. Cargar video
+// 1. Cargar video liberando memoria anterior
 videoInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
-  videoPreview.src = URL.createObjectURL(file);
+  if (currentVideoUrl) URL.revokeObjectURL(currentVideoUrl);
+  currentVideoUrl = URL.createObjectURL(file);
+  videoPreview.src = currentVideoUrl;
   videoPreview.style.display = 'block';
   placeholderText.style.display = 'none';
   btnExport.disabled = false;
 });
 
-// 2. Cargar audio personalizado
+// 2. Cargar audio liberando memoria anterior
 audioInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
-  customAudioFile = file;
-  alert('🎵 Audio listo para mezclar: ' + file.name);
+  if (customAudioUrl) URL.revokeObjectURL(customAudioUrl);
+  customAudioUrl = URL.createObjectURL(file);
+  alert('🎵 Audio listo: ' + file.name);
 });
 
-// 3. Toggle Auto-Cortes (Zoom rítmico)
+// 3. Auto-Cortes (Zoom rítmico)
 btnAutoCut.addEventListener('click', () => {
   autoCutEnabled = !autoCutEnabled;
   btnAutoCut.classList.toggle('active', autoCutEnabled);
 });
 
-// 4. Toggle Modo Neon / Espejo Viral
+// 4. Modo Neon / Espejo
 btnFaceSwap.textContent = '✨ Efecto Neon/Espejo';
 btnFaceSwap.addEventListener('click', () => {
   neonModeEnabled = !neonModeEnabled;
@@ -46,7 +50,7 @@ btnFaceSwap.addEventListener('click', () => {
   updatePreviewCSS();
 });
 
-// 5. Toggle Filtro Viral
+// 5. Filtro Viral
 btnFilter.addEventListener('click', () => {
   activeFilter = !activeFilter;
   btnFilter.classList.toggle('active', activeFilter);
@@ -61,38 +65,39 @@ function updatePreviewCSS() {
   videoPreview.style.transform = neonModeEnabled ? 'scaleX(-1)' : 'none';
 }
 
-// 6. Renderizado real mediante Canvas + MediaRecorder
+// 6. Renderizado ultraligero (540x960 @ 24fps) para evitar errores de RAM en Android
 btnExport.addEventListener('click', async () => {
   renderModal.style.display = 'flex';
-  statusText.textContent = 'Preparando motor de renderizado...';
+  statusText.textContent = 'Iniciando motor ligero...';
 
   const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  // Resolución vertical óptima para móviles (720x1280)
-  canvas.width = 720;
-  canvas.height = 1280;
+  const ctx = canvas.getContext('2d', { alpha: false });
+  canvas.width = 540;
+  canvas.height = 960;
 
-  const stream = canvas.captureStream(30);
+  const stream = canvas.captureStream(24);
+  let audioElement = null;
 
-  // Configurar pista de audio (personalizada o del video)
-  let audioCtx, audioElement, dest;
-  if (customAudioFile) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    audioElement = new Audio(URL.createObjectURL(customAudioFile));
-    const source = audioCtx.createMediaElementSource(audioElement);
-    dest = audioCtx.createMediaStreamDestination();
-    source.connect(dest);
-    dest.stream.getAudioTracks().forEach(track => stream.addTrack(track));
+  if (customAudioUrl) {
+    audioElement = new Audio(customAudioUrl);
+    audioElement.crossOrigin = 'anonymous';
+    if (audioElement.captureStream) {
+      const aStream = audioElement.captureStream();
+      aStream.getAudioTracks().forEach(t => stream.addTrack(t));
+    }
   } else if (videoPreview.captureStream) {
-    const vidStream = videoPreview.captureStream();
-    vidStream.getAudioTracks().forEach(track => stream.addTrack(track));
+    const vStream = videoPreview.captureStream();
+    vStream.getAudioTracks().forEach(t => stream.addTrack(t));
   }
 
-  const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+  const recorder = new MediaRecorder(stream, {
+    mimeType: 'video/webm',
+    videoBitsPerSecond: 1500000
+  });
   const chunks = [];
 
   recorder.ondataavailable = (e) => {
-    if (e.data.size > 0) chunks.push(e.data);
+    if (e.data && e.data.size > 0) chunks.push(e.data);
   };
 
   recorder.onstop = () => {
@@ -102,21 +107,20 @@ btnExport.addEventListener('click', async () => {
     a.href = url;
     a.download = 'anda-la-oswap-viral.webm';
     a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
     renderModal.style.display = 'none';
     videoPreview.muted = false;
     if (audioElement) audioElement.pause();
   };
 
-  // Reiniciar video para grabar desde el segundo 0
   videoPreview.pause();
   videoPreview.currentTime = 0;
-  videoPreview.muted = !!customAudioFile;
+  videoPreview.muted = !!customAudioUrl;
 
   await videoPreview.play();
   if (audioElement) await audioElement.play();
-  recorder.start();
+  recorder.start(500);
 
-  // Dibujar fotograma por fotograma con efectos reales
   function drawFrame() {
     if (videoPreview.paused || videoPreview.ended) {
       if (recorder.state === 'recording') recorder.stop();
@@ -125,31 +129,27 @@ btnExport.addEventListener('click', async () => {
 
     const t = videoPreview.currentTime;
     const progress = Math.min(100, Math.round((t / videoPreview.duration) * 100));
-    statusText.textContent = `Renderizando clip viral... ${progress}%`;
+    statusText.textContent = `Renderizando... ${progress}%`;
 
     ctx.save();
-    // Aplicar filtros reales al canvas
     let canvasFilters = [];
     if (activeFilter) canvasFilters.push('contrast(1.28) saturate(1.45) brightness(1.06)');
     if (neonModeEnabled) canvasFilters.push('hue-rotate(25deg) contrast(1.15)');
     ctx.filter = canvasFilters.join(' ') || 'none';
 
-    // Efecto Auto-Cortes (Zoom dinámico cada 1.5 segundos)
     let scale = 1;
     if (autoCutEnabled && Math.floor(t / 1.5) % 2 === 1) {
       scale = 1.18;
     }
 
-    // Modo espejo + escalado centrado
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.scale(neonModeEnabled ? -scale : scale, scale);
     ctx.drawImage(videoPreview, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
     ctx.restore();
 
-    // Marca de agua sutil que promociona tu web en TikTok
     ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
-    ctx.font = 'bold 26px sans-serif';
-    ctx.fillText('🔥 Anda la oSwap', 30, canvas.height - 40);
+    ctx.font = 'bold 20px sans-serif';
+    ctx.fillText('🔥 Anda la oSwap', 20, canvas.height - 28);
 
     requestAnimationFrame(drawFrame);
   }
